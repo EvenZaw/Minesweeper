@@ -12,8 +12,8 @@ body {
 #info {
     display: flex;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 12px;
+    gap: 36px;
+    margin-bottom: 20px;
 }
 
 #board {
