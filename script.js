@@ -1,25 +1,84 @@
-const ROWS = 9;
-const COLS = 9;
-const MINES = 10;
+const LEVELS = {
+  beginner:     { rows: 9,  cols: 9,  mines: 10, size: 36 },
+  intermediate: { rows: 16, cols: 16, mines: 40, size: 32 },
+  expert:       { rows: 16, cols: 30, mines: 99, size: 28 },
+};
+
+let levelName = 'beginner';
+let ROWS = 9;
+let COLS = 9;
+let MINES = 10;
 
 const boardEl = document.getElementById('board');
 const minesLeftEl = document.getElementById('mines-left');
 const messageEl = document.getElementById('message');
+const timeEl = document.getElementById('time');
+const bestEl = document.getElementById('best');
+const flagModeBtn = document.getElementById('flag-mode');
 
 let cells = [];
 let gameOver = false;
 let firstClick = true;
 let flags = 0;
+let flagMode = false;
+let timer = null;
+let startTime = 0;
+
+/* ---------- timer and best time ---------- */
+
+function startTimer() {
+  startTime = Date.now();
+  timer = setInterval(() => {
+    timeEl.textContent = String(Math.min(999, elapsed())).padStart(3, '0');
+  }, 250);
+}
+
+function stopTimer() {
+  clearInterval(timer);
+  timer = null;
+}
+
+function elapsed() {
+  return Math.floor((Date.now() - startTime) / 1000);
+}
+
+function loadBest() {
+  const saved = localStorage.getItem('best-' + levelName);
+  bestEl.textContent = saved ? saved + 's' : '--';
+}
+
+/* ---------- difficulty ---------- */
+
+function setLevel(name) {
+  levelName = name;
+  const level = LEVELS[name];
+  ROWS = level.rows;
+  COLS = level.cols;
+  MINES = level.mines;
+
+  boardEl.style.setProperty('--cell', level.size + 'px');
+  boardEl.style.gridTemplateColumns = `repeat(${COLS}, var(--cell))`;
+
+  document.querySelectorAll('#levels button').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.level === name);
+  });
+
+  newGame();
+}
+
+/* ---------- game ---------- */
 
 function newGame() {
+  stopTimer();
   cells = [];
   gameOver = false;
   firstClick = true;
   flags = 0;
   boardEl.innerHTML = '';
-  boardEl.style.gridTemplateColumns = `repeat(${COLS}, 36px)`;
   minesLeftEl.textContent = MINES;
+  timeEl.textContent = '000';
   messageEl.textContent = '';
+  loadBest();
 
   for (let i = 0; i < ROWS * COLS; i++) {
     const el = document.createElement('button');
@@ -66,12 +125,20 @@ function placeMines(safe) {
 
 function handleClick(i) {
   if (gameOver) return;
+
+  // Flag mode: clicking places a flag instead of opening
+  if (flagMode) {
+    toggleFlag(i);
+    return;
+  }
+
   const cell = cells[i];
   if (cell.open || cell.flag) return;
 
   if (firstClick) {
     placeMines(i);
     firstClick = false;
+    startTimer();
   }
   if (cell.mine) {
     lose();
@@ -110,14 +177,25 @@ function toggleFlag(i) {
 
 function checkWin() {
   const safeLeft = cells.filter((c) => !c.mine && !c.open).length;
-  if (safeLeft === 0) {
-    gameOver = true;
-    messageEl.textContent = 'You win!';
+  if (safeLeft > 0) return;
+
+  gameOver = true;
+  stopTimer();
+  const time = elapsed();
+  timeEl.textContent = String(Math.min(999, time)).padStart(3, '0');
+  messageEl.textContent = `You win! ${time} seconds.`;
+
+  const saved = parseInt(localStorage.getItem('best-' + levelName), 10);
+  if (!saved || time < saved) {
+    localStorage.setItem('best-' + levelName, String(time));
+    messageEl.textContent += ' New best!';
+    loadBest();
   }
 }
 
 function lose() {
   gameOver = true;
+  stopTimer();
   cells.forEach((c) => {
     if (c.mine) {
       c.el.classList.add('mine');
@@ -127,5 +205,18 @@ function lose() {
   messageEl.textContent = 'Boom. You hit a mine.';
 }
 
+/* ---------- buttons ---------- */
+
+document.querySelectorAll('#levels button').forEach((btn) => {
+  btn.addEventListener('click', () => setLevel(btn.dataset.level));
+});
+
+flagModeBtn.addEventListener('click', () => {
+  flagMode = !flagMode;
+  flagModeBtn.classList.toggle('active', flagMode);
+  flagModeBtn.textContent = 'Flag mode: ' + (flagMode ? 'on' : 'off');
+});
+
 document.getElementById('reset').addEventListener('click', newGame);
-newGame();
+
+setLevel('beginner');
