@@ -9,12 +9,24 @@
 </head>
 <body>
     <h1>Minesweeper</h1>
-    <div id="info">
-        <span>Mines left: <strong id="mines-left">10</strong></span>
-        <button id="reset">New Game</button>    
+
+    <div id="levels">
+        <button data-level="beginner">Beginner 9x9</button>
+        <button data-level="intermediate">Intermediate 16x16</button>
+        <button data-level="expert">Expert 30x16</button>
     </div>
-    <div id="board"></div>
-    <p id="message"></p>
+
+    <div id="hud">
+        <div class="stat"><span>Mines left</span><strong id="mines-left">10</strong></div>
+        <div class="stat"><span>Time</span><strong id="time">000</strong></div>
+        <div class="stat"><span>Best</span><strong id="best">--</strong></div>
+    </div>
+
+    <div id="board-wrap">
+        <div id="board"></div>
+    </div>
+
+    
     <script src="script.js"></script>
 </body>
 </html>
